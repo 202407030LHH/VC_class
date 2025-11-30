@@ -153,8 +153,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	/// 펜 생성, os에 반환해야함
 	HPEN myPen, osPen;
 
-
-
 	/// 펜 생성
 	myPen = CreatePen(PS_SOLID, penStroke, penColor);
 	osPen = (HPEN)SelectObject(hdc, myPen);
