@@ -1,8 +1,8 @@
-﻿// 1124_assignment.cpp : 애플리케이션에 대한 진입점을 정의합니다.
+﻿// ChildPaint.cpp : 애플리케이션에 대한 진입점을 정의합니다.
 //
 
 #include "framework.h"
-#include "1124_assignment.h"
+#include "ChildPaint.h"
 
 #define MAX_LOADSTRING 100
 
@@ -29,7 +29,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// 전역 문자열을 초기화합니다.
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-	LoadStringW(hInstance, IDC_MY1124ASSIGNMENT, szWindowClass, MAX_LOADSTRING);
+	LoadStringW(hInstance, IDC_CHILDPAINT, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
 	// 애플리케이션 초기화를 수행합니다:
@@ -38,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		return FALSE;
 	}
 
-	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MY1124ASSIGNMENT));
+	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CHILDPAINT));
 
 	MSG msg;
 
@@ -73,10 +73,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
 	wcex.hInstance = hInstance;
-	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MY1124ASSIGNMENT));
+	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_CHILDPAINT));
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_MY1124ASSIGNMENT);
+	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_CHILDPAINT);
 	wcex.lpszClassName = szWindowClass;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -111,28 +111,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return TRUE;
 }
 
-
-/// 펜 전환 플레그 생성
-int g_pen_flag;
-
-/// 펜 좌표 전역변수로 저장
-int g_x, g_y;
-
-/// 클릭 플레그 생성
-BOOL g_free_flag;
-
-/// 핸들러 생성
-HWND g_childpaint;
-
-/// 펜 굵기 생성
-int penStroke = 1;
-
-/// 펜 색상 생성
-COLORREF penColor = RGB(0, 0, 0);
-
-/// 면 색상 생성
-COLORREF solidColor = RGB(255, 255, 255);
-
+//
 //  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
 //  용도: 주 창의 메시지를 처리합니다.
@@ -142,43 +121,61 @@ COLORREF solidColor = RGB(255, 255, 255);
 //  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
 //
 //
-/// 윈도우 메시징 시스템의 기본 구조
-/// WndProc의 함수를 내가 호출한다! ==> WndProc도 함수!
-/// 4개의 인수를 내가 설정해서 전달해야 한다!
 
-/// 지금까지의 문제점 
-/// 1. 그림판에 그리려고 함. 문제는 그림판이 아닌 자식 윈도우를 그림판처럼 만드는것임
-/// 2. 자식 윈도우가 존재하지 않았음
 
+/// 펜 전환 플레그 생성
+int g_pen_flag;
+int g_x, g_y;
+int g_penStroke;
+COLORREF g_Pcolor;
+COLORREF g_Bcolor;
+BOOL g_free_flag;
+
+HWND g_Hmsprint;
+
+
+HPEN SelectPen(HDC hdc, int g_strok, COLORREF g_pColor)
+{
+	/// 나의 펜 설정 영역
+	int pStrok = 1;
+	if (ID_1PX == g_strok) { pStrok = 1; }
+	else if (ID_5PX == g_strok) { pStrok = 5; }
+	else if (ID_10PX == g_strok) { pStrok = 10; }
+
+	COLORREF pColor = RGB(0, 0, 0);
+	if (ID_ST_RED == g_pColor) { pColor = RGB(255, 0, 0); }
+	else if (ID_ST_GREEN == g_pColor) { pColor = RGB(0, 255, 0); }
+	else if (ID_ST_BLUE == g_pColor) { pColor = RGB(0, 0, 255); }
+
+	HPEN myPen = CreatePen(BS_SOLID, pStrok, pColor);
+	return myPen;
+}
+
+HBRUSH SelectBrush(HDC hdc, COLORREF g_fColor)
+{
+	/// 나의 브러쉬 설정 영역
+	HBRUSH myBrush = nullptr;
+
+	if (ID_BRUSH_BLACK == g_fColor) { myBrush = CreateSolidBrush(RGB(0, 0, 0)); }
+	else if (ID_BRUSH_WHITE == g_fColor) { myBrush = CreateSolidBrush(RGB(255, 255, 255)); }
+	else if (ID_BRUSH_PURPLE == g_fColor) { myBrush = CreateSolidBrush(RGB(255, 0, 255)); }
+
+	return myBrush;
+}
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	if (g_childpaint != NULL)
-	{
-		switch (message)
-		{
-		case WM_COMMAND:
-		case WM_LBUTTONDOWN:
-		case WM_LBUTTONUP:
-		case WM_MOUSEMOVE:
-			PostMessage(g_childpaint, message, wParam, lParam);
-			break;
-		}
-	}
-	/// 접근 방법 마우스를 움직일 때 입력을 받아야하니 HWND 그림판 생성
-	if (g_childpaint == NULL)
-	{
-		g_childpaint = FindWindow(NULL, L"ChildPaint");
-	}
-	HDC hdc = GetDC(hWnd);
 
 	/// 마우스 좌표 저장
 	int x = 0, y = 0;
+
+	/// 접근 방법 마우스를 움직일 때 입력을 받아야하니 HWND 그림판 생성
 
 	switch (message)
 	{
 	case WM_LBUTTONDOWN:
 	{
+
 		if (g_pen_flag == 0) break;
 		/// 마우스 클릭 할 때 플래그 활성화
 		if (g_pen_flag == 4) { g_free_flag = true; }
@@ -189,7 +186,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_MOUSEMOVE:
 	{
-		
+		HDC hdc = GetDC(hWnd);
 		if (g_pen_flag == 0) break;
 		if (g_pen_flag == 4 && g_free_flag)
 		{
@@ -202,6 +199,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			g_x = x;
 			g_y = y;
 		}
+		ReleaseDC(hWnd, hdc);
 	}
 	break;
 	case WM_LBUTTONUP:
@@ -211,8 +209,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		/// 클릭 해제 시 비활성화
 		if (g_free_flag) { g_free_flag = false; }
 
+		HPEN myPen,osPen;
+		HBRUSH myBrush,osBrush;
+
 		x = LOWORD(lParam);
 		y = HIWORD(lParam);
+
+		myPen = SelectPen(hdc, g_penStroke, g_Pcolor);
+		osPen = (HPEN)SelectObject(hdc, myPen);
+
+		myBrush = SelectBrush(hdc, g_Bcolor);
+		osBrush = (HBRUSH)SelectObject(hdc, myBrush);
+
+
 		if (g_pen_flag == 1)
 		{
 			/// 직선 그리기
@@ -260,37 +269,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		/// 선 스트로크 커맨드
 		case ID_1PX:
-			penStroke = 1;
+			g_penStroke = 1;
 			break;
 		case ID_5PX:
-			penStroke = 5;
+			g_penStroke = 5;
 			break;
 		case ID_10PX:
-			penStroke = 10;
+			g_penStroke = 10;
 			break;
 			/// 선 색 커맨드
 		case ID_ST_RED:
-			penColor = RGB(255, 0, 0);
+			g_Pcolor= RGB(255, 0, 0);
 			break;
 		case ID_ST_GREED:
-			penColor = RGB(0, 255, 0);
+			g_Pcolor = RGB(0, 255, 0);
 			break;
 		case ID_ST_BLUE:
-			penColor = RGB(0, 0, 255);
+			g_Pcolor = RGB(0, 0, 255);
 			break;
 			/// 면 색 커맨드
 		case ID_BRUSH_BLACK:
-			solidColor = RGB(0, 0, 0);
+			g_Bcolor = RGB(0, 0, 0);
 			break;
 		case ID_BRUSH_WHITE:
-			solidColor = RGB(255, 255, 255);
+			g_Bcolor = RGB(255, 255, 255);
 			break;
 		case ID_BRUSH_PURPLE:
-			solidColor = RGB(180, 85, 162);
+			g_Bcolor = RGB(180, 85, 162);
 			break;
-		}
 
-		break;
+		}
 	}
 	case WM_PAINT:
 	{
@@ -302,7 +310,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		ReleaseDC(hWnd, hdc);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
